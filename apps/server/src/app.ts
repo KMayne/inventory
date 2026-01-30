@@ -1,24 +1,29 @@
-import { Hono, type Context, type Next, type MiddlewareHandler } from "hono";
-import { cors } from "hono/cors";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import express, { type Application, type Request, type Response, type NextFunction, type RequestHandler } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import { config } from "./config.ts";
 import { refreshSession, deleteSession } from "./store/index.ts";
 import type { Session, User } from "@inventory/shared";
 import { getUserById } from "./store/index.ts";
 
-// Extend Hono context with our variables
-export interface Env {
-  Variables: {
-    session: Session;
-    user: User;
-  };
+// Extend Express Request type with our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      session?: Session;
+      user?: User;
+    }
+  }
 }
 
-export const app = new Hono<Env>();
+export const app: Application = express();
+
+// Middleware
+app.use(express.json());
+app.use(cookieParser());
 
 // CORS for frontend
 app.use(
-  "*",
   cors({
     origin: config.origin,
     credentials: true,
@@ -26,49 +31,48 @@ app.use(
 );
 
 // Auth middleware helper
-export const requireAuth = (): MiddlewareHandler<Env> => {
-  return async (c, next) => {
-    const sessionId = getCookie(c, config.sessionCookieName);
-    if (!sessionId) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+export const requireAuth: RequestHandler = (req, res, next) => {
+  const sessionId = req.cookies[config.sessionCookieName];
+  if (!sessionId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
-    const session = refreshSession(sessionId);
-    if (!session) {
-      deleteCookie(c, config.sessionCookieName);
-      return c.json({ error: "Session expired" }, 401);
-    }
+  const session = refreshSession(sessionId);
+  if (!session) {
+    clearSessionCookie(res);
+    res.status(401).json({ error: "Session expired" });
+    return;
+  }
 
-    const user = getUserById(session.userId);
-    if (!user) {
-      deleteCookie(c, config.sessionCookieName);
-      return c.json({ error: "User not found" }, 401);
-    }
+  const user = getUserById(session.userId);
+  if (!user) {
+    clearSessionCookie(res);
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
 
-    c.set("session", session);
-    c.set("user", user);
+  req.session = session;
+  req.user = user;
 
-    // Update session cookie with new expiry
-    setSessionCookie(c, session);
+  // Update session cookie with new expiry
+  setSessionCookie(res, session);
 
-    await next();
-  };
+  next();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setSessionCookie(c: Context<any>, session: Session) {
-  setCookie(c, config.sessionCookieName, session.id, {
+export function setSessionCookie(res: Response, session: Session) {
+  res.cookie(config.sessionCookieName, session.id, {
     httpOnly: true,
     secure: config.origin.startsWith("https"),
-    sameSite: "Lax",
-    maxAge: config.sessionMaxAge / 1000, // seconds
+    sameSite: "lax",
+    maxAge: config.sessionMaxAge,
     path: "/",
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function clearSessionCookie(c: Context<any>) {
-  deleteCookie(c, config.sessionCookieName, {
+export function clearSessionCookie(res: Response) {
+  res.clearCookie(config.sessionCookieName, {
     path: "/",
   });
 }

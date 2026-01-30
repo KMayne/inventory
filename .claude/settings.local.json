@@ -8,7 +8,8 @@
       "Bash(pnpm --filter @inventory/server exec tsc:*)",
       "Bash(pnpm --filter @inventory/web exec tsc:*)",
       "Bash(pnpm --filter @inventory/shared exec tsc:*)",
-      "Bash(pnpm view:*)"
+      "Bash(pnpm view:*)",
+      "Bash(pnpm --filter @inventory/server build:*)"
     ]
   }
 }

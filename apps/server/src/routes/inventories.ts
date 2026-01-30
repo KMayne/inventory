@@ -1,11 +1,9 @@
-import { Hono } from "hono";
-import { type Env, requireAuth } from "../app.ts";
+import { Router, type Request, type Response, type IRouter } from "express";
+import { requireAuth } from "../app.ts";
 import {
   createInventoryAccess,
   getInventoriesForUser,
-  getInventoryAccess,
   isInventoryOwner,
-  canUserAccessInventory,
   addMemberToInventory,
   removeMemberFromInventory,
   deleteInventoryAccess,
@@ -13,17 +11,17 @@ import {
 import { getRepo } from "../repo.ts";
 import type { InventoryDoc } from "@inventory/shared";
 
-const inventories = new Hono<Env>();
+const inventories: IRouter = Router();
 
 // All routes require auth
-inventories.use("*", requireAuth());
+inventories.use(requireAuth);
 
 // GET /api/inventories
-inventories.get("/", (c) => {
-  const user = c.get("user");
+inventories.get("/", (req: Request, res: Response) => {
+  const user = req.user!;
   const userInventories = getInventoriesForUser(user.id);
 
-  return c.json({
+  res.json({
     inventories: userInventories.map((a) => ({
       id: a.inventoryId,
       isOwner: a.ownerId === user.id,
@@ -32,21 +30,21 @@ inventories.get("/", (c) => {
 });
 
 // POST /api/inventories
-inventories.post("/", async (c) => {
-  const user = c.get("user");
-  const body = await c.req.json<{ name?: string }>();
-  const name = body.name?.trim() || "New Inventory";
+inventories.post("/", async (req: Request, res: Response) => {
+  const user = req.user!;
+  const { name } = req.body as { name?: string };
+  const inventoryName = name?.trim() || "New Inventory";
 
   const repo = getRepo();
   const handle = repo.create<InventoryDoc>();
   handle.change((doc) => {
-    doc.name = name;
+    doc.name = inventoryName;
     doc.items = {};
   });
 
   createInventoryAccess(handle.documentId, user.id);
 
-  return c.json({
+  res.json({
     inventory: {
       id: handle.documentId,
       isOwner: true,
@@ -55,12 +53,13 @@ inventories.post("/", async (c) => {
 });
 
 // DELETE /api/inventories/:id
-inventories.delete("/:id", async (c) => {
-  const user = c.get("user");
-  const inventoryId = c.req.param("id");
+inventories.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
 
   if (!isInventoryOwner(user.id, inventoryId)) {
-    return c.json({ error: "Only the owner can delete an inventory" }, 403);
+    res.status(403).json({ error: "Only the owner can delete an inventory" });
+    return;
   }
 
   deleteInventoryAccess(inventoryId);
@@ -68,49 +67,53 @@ inventories.delete("/:id", async (c) => {
   // Note: We're not deleting the Automerge document itself
   // In a real app, you might want to mark it as deleted or archive it
 
-  return c.json({ success: true });
+  res.json({ success: true });
 });
 
 // POST /api/inventories/:id/members
-inventories.post("/:id/members", async (c) => {
-  const user = c.get("user");
-  const inventoryId = c.req.param("id");
+inventories.post("/:id/members", async (req: Request<{ id: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
 
   if (!isInventoryOwner(user.id, inventoryId)) {
-    return c.json({ error: "Only the owner can add members" }, 403);
+    res.status(403).json({ error: "Only the owner can add members" });
+    return;
   }
 
-  const body = await c.req.json<{ userId: string }>();
-  const { userId } = body;
+  const { userId } = req.body as { userId: string };
 
   if (!userId) {
-    return c.json({ error: "userId is required" }, 400);
+    res.status(400).json({ error: "userId is required" });
+    return;
   }
 
   const success = addMemberToInventory(inventoryId, userId);
   if (!success) {
-    return c.json({ error: "Inventory not found" }, 404);
+    res.status(404).json({ error: "Inventory not found" });
+    return;
   }
 
-  return c.json({ success: true });
+  res.json({ success: true });
 });
 
 // DELETE /api/inventories/:id/members/:uid
-inventories.delete("/:id/members/:uid", async (c) => {
-  const user = c.get("user");
-  const inventoryId = c.req.param("id");
-  const memberId = c.req.param("uid");
+inventories.delete("/:id/members/:uid", async (req: Request<{ id: string; uid: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
+  const memberId = req.params.uid;
 
   if (!isInventoryOwner(user.id, inventoryId)) {
-    return c.json({ error: "Only the owner can remove members" }, 403);
+    res.status(403).json({ error: "Only the owner can remove members" });
+    return;
   }
 
   const success = removeMemberFromInventory(inventoryId, memberId);
   if (!success) {
-    return c.json({ error: "Member not found" }, 404);
+    res.status(404).json({ error: "Member not found" });
+    return;
   }
 
-  return c.json({ success: true });
+  res.json({ success: true });
 });
 
 export { inventories };

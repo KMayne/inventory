@@ -1,5 +1,4 @@
-import { Hono } from "hono";
-import { getCookie } from "hono/cookie";
+import { Router, type Request, type Response, type IRouter } from "express";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -19,33 +18,30 @@ import {
   getCredentialById,
   updateCredentialCounter,
   createSession,
-  getSession,
   refreshSession,
   deleteSession,
   createInventoryAccess,
   getInventoriesForUser,
 } from "../store/index.ts";
 import {
-  type Env,
   setSessionCookie,
   clearSessionCookie,
-  requireAuth,
 } from "../app.ts";
 import { getRepo } from "../repo.ts";
 import type { InventoryDoc } from "@inventory/shared";
 
-const auth = new Hono<Env>();
+const auth: IRouter = Router();
 
 // Store challenges temporarily (in production, use a proper store)
 const challenges = new Map<string, string>(); // tempId -> challenge
 
 // POST /auth/register/start
-auth.post("/register/start", async (c) => {
-  const body = await c.req.json<{ name: string }>();
-  const { name } = body;
+auth.post("/register/start", async (req: Request, res: Response) => {
+  const { name } = req.body as { name: string };
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return c.json({ error: "Name is required" }, 400);
+    res.status(400).json({ error: "Name is required" });
+    return;
   }
 
   const tempId = crypto.randomUUID();
@@ -66,21 +62,21 @@ auth.post("/register/start", async (c) => {
   // Clean up old challenges after 5 minutes
   setTimeout(() => challenges.delete(tempId), 5 * 60 * 1000);
 
-  return c.json({ options, tempId });
+  res.json({ options, tempId });
 });
 
 // POST /auth/register/finish
-auth.post("/register/finish", async (c) => {
-  const body = await c.req.json<{
+auth.post("/register/finish", async (req: Request, res: Response) => {
+  const { tempId, name, response } = req.body as {
     tempId: string;
     name: string;
     response: RegistrationResponseJSON;
-  }>();
-  const { tempId, name, response } = body;
+  };
 
   const challenge = challenges.get(tempId);
   if (!challenge) {
-    return c.json({ error: "Challenge expired or invalid" }, 400);
+    res.status(400).json({ error: "Challenge expired or invalid" });
+    return;
   }
   challenges.delete(tempId);
 
@@ -93,7 +89,8 @@ auth.post("/register/finish", async (c) => {
     });
 
     if (!verification.verified || !verification.registrationInfo) {
-      return c.json({ error: "Registration verification failed" }, 400);
+      res.status(400).json({ error: "Registration verification failed" });
+      return;
     }
 
     const { credential } = verification.registrationInfo;
@@ -113,27 +110,27 @@ auth.post("/register/finish", async (c) => {
     const repo = getRepo();
     const handle = repo.create<InventoryDoc>();
     handle.change((doc) => {
-      doc.name = "My Inventory";
+      doc.name = "Inventory";
       doc.items = {};
     });
     createInventoryAccess(handle.documentId, user.id);
 
     // Create session
     const session = createSession(user.id);
-    setSessionCookie(c, session);
+    setSessionCookie(res, session);
 
-    return c.json({
+    res.json({
       user: { id: user.id, name: user.name },
       inventoryId: handle.documentId,
     });
   } catch (err) {
     console.error("Registration error:", err);
-    return c.json({ error: "Registration failed" }, 500);
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 
 // POST /auth/login/start
-auth.post("/login/start", async (c) => {
+auth.post("/login/start", async (req: Request, res: Response) => {
   const tempId = crypto.randomUUID();
 
   const options = await generateAuthenticationOptions({
@@ -144,20 +141,20 @@ auth.post("/login/start", async (c) => {
   challenges.set(tempId, options.challenge);
   setTimeout(() => challenges.delete(tempId), 5 * 60 * 1000);
 
-  return c.json({ options, tempId });
+  res.json({ options, tempId });
 });
 
 // POST /auth/login/finish
-auth.post("/login/finish", async (c) => {
-  const body = await c.req.json<{
+auth.post("/login/finish", async (req: Request, res: Response) => {
+  const { tempId, response } = req.body as {
     tempId: string;
     response: AuthenticationResponseJSON;
-  }>();
-  const { tempId, response } = body;
+  };
 
   const challenge = challenges.get(tempId);
   if (!challenge) {
-    return c.json({ error: "Challenge expired or invalid" }, 400);
+    res.status(400).json({ error: "Challenge expired or invalid" });
+    return;
   }
   challenges.delete(tempId);
 
@@ -165,12 +162,14 @@ auth.post("/login/finish", async (c) => {
     // Find user by credential ID
     const user = getUserByCredentialId(response.id);
     if (!user) {
-      return c.json({ error: "Credential not found" }, 401);
+      res.status(401).json({ error: "Credential not found" });
+      return;
     }
 
     const credential = getCredentialById(user.id, response.id);
     if (!credential) {
-      return c.json({ error: "Credential not found" }, 401);
+      res.status(401).json({ error: "Credential not found" });
+      return;
     }
 
     const verification = await verifyAuthenticationResponse({
@@ -187,7 +186,8 @@ auth.post("/login/finish", async (c) => {
     });
 
     if (!verification.verified) {
-      return c.json({ error: "Authentication failed" }, 401);
+      res.status(401).json({ error: "Authentication failed" });
+      return;
     }
 
     // Update counter
@@ -199,11 +199,11 @@ auth.post("/login/finish", async (c) => {
 
     // Create session
     const session = createSession(user.id);
-    setSessionCookie(c, session);
+    setSessionCookie(res, session);
 
     const inventories = getInventoriesForUser(user.id);
 
-    return c.json({
+    res.json({
       user: { id: user.id, name: user.name },
       inventories: inventories.map((a) => ({
         id: a.inventoryId,
@@ -212,34 +212,37 @@ auth.post("/login/finish", async (c) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    return c.json({ error: "Authentication failed" }, 500);
+    res.status(500).json({ error: "Authentication failed" });
   }
 });
 
 // GET /auth/me
-auth.get("/me", async (c) => {
-  const sessionId = getCookie(c, config.sessionCookieName);
+auth.get("/me", async (req: Request, res: Response) => {
+  const sessionId = req.cookies[config.sessionCookieName];
   if (!sessionId) {
-    return c.json({ user: null });
+    res.json({ user: null });
+    return;
   }
 
   const session = refreshSession(sessionId);
   if (!session) {
-    clearSessionCookie(c);
-    return c.json({ user: null });
+    clearSessionCookie(res);
+    res.json({ user: null });
+    return;
   }
 
   const user = getUserById(session.userId);
   if (!user) {
-    clearSessionCookie(c);
-    return c.json({ user: null });
+    clearSessionCookie(res);
+    res.json({ user: null });
+    return;
   }
 
-  setSessionCookie(c, session);
+  setSessionCookie(res, session);
 
   const inventories = getInventoriesForUser(user.id);
 
-  return c.json({
+  res.json({
     user: { id: user.id, name: user.name },
     inventories: inventories.map((a) => ({
       id: a.inventoryId,
@@ -249,13 +252,13 @@ auth.get("/me", async (c) => {
 });
 
 // POST /auth/logout
-auth.post("/logout", async (c) => {
-  const sessionId = getCookie(c, config.sessionCookieName);
+auth.post("/logout", async (req: Request, res: Response) => {
+  const sessionId = req.cookies[config.sessionCookieName];
   if (sessionId) {
     deleteSession(sessionId);
   }
-  clearSessionCookie(c);
-  return c.json({ success: true });
+  clearSessionCookie(res);
+  res.json({ success: true });
 });
 
 export { auth };
