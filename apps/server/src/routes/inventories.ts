@@ -17,9 +17,9 @@ const inventories: IRouter = Router();
 inventories.use(requireAuth);
 
 // GET /api/inventories
-inventories.get("/", (req: Request, res: Response) => {
+inventories.get("/", async (req: Request, res: Response) => {
   const user = req.user!;
-  const userInventories = getInventoriesForUser(user.id);
+  const userInventories = await getInventoriesForUser(user.id);
 
   res.json({
     inventories: userInventories.map((a) => ({
@@ -42,7 +42,7 @@ inventories.post("/", async (req: Request, res: Response) => {
     doc.items = {};
   });
 
-  createInventoryAccess(handle.documentId, user.id);
+  await createInventoryAccess(handle.documentId, user.id);
 
   res.json({
     inventory: {
@@ -57,12 +57,12 @@ inventories.delete("/:id", async (req: Request<{ id: string }>, res: Response) =
   const user = req.user!;
   const inventoryId = req.params.id;
 
-  if (!isInventoryOwner(user.id, inventoryId)) {
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
     res.status(403).json({ error: "Only the owner can delete an inventory" });
     return;
   }
 
-  deleteInventoryAccess(inventoryId);
+  await deleteInventoryAccess(inventoryId);
 
   // Note: We're not deleting the Automerge document itself
   // In a real app, you might want to mark it as deleted or archive it
@@ -75,7 +75,7 @@ inventories.post("/:id/members", async (req: Request<{ id: string }>, res: Respo
   const user = req.user!;
   const inventoryId = req.params.id;
 
-  if (!isInventoryOwner(user.id, inventoryId)) {
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
     res.status(403).json({ error: "Only the owner can add members" });
     return;
   }
@@ -87,7 +87,7 @@ inventories.post("/:id/members", async (req: Request<{ id: string }>, res: Respo
     return;
   }
 
-  const success = addMemberToInventory(inventoryId, userId);
+  const success = await addMemberToInventory(inventoryId, userId);
   if (!success) {
     res.status(404).json({ error: "Inventory not found" });
     return;
@@ -102,12 +102,12 @@ inventories.delete("/:id/members/:uid", async (req: Request<{ id: string; uid: s
   const inventoryId = req.params.id;
   const memberId = req.params.uid;
 
-  if (!isInventoryOwner(user.id, inventoryId)) {
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
     res.status(403).json({ error: "Only the owner can remove members" });
     return;
   }
 
-  const success = removeMemberFromInventory(inventoryId, memberId);
+  const success = await removeMemberFromInventory(inventoryId, memberId);
   if (!success) {
     res.status(404).json({ error: "Member not found" });
     return;

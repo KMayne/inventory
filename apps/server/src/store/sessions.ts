@@ -1,40 +1,73 @@
 import type { Session } from "@inventory/shared";
 import { config } from "../config.ts";
+import { prisma } from "./prisma.ts";
 
-const sessions = new Map<string, Session>();
+export async function createSession(userId: string): Promise<Session> {
+  const expiresAt = Date.now() + config.sessionMaxAge;
 
-export function createSession(userId: string): Session {
-  const session: Session = {
-    id: crypto.randomUUID(),
-    userId,
-    expiresAt: Date.now() + config.sessionMaxAge,
+  const session = await prisma.session.create({
+    data: {
+      userId,
+      expiresAt: BigInt(expiresAt),
+    },
+  });
+
+  return {
+    id: session.id,
+    userId: session.userId,
+    expiresAt: Number(session.expiresAt),
   };
-  sessions.set(session.id, session);
-  return session;
 }
 
-export function getSession(sessionId: string): Session | undefined {
-  const session = sessions.get(sessionId);
+export async function getSession(
+  sessionId: string
+): Promise<Session | undefined> {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+  });
+
   if (!session) return undefined;
 
+  const expiresAt = Number(session.expiresAt);
+
   // Check if expired
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(sessionId);
+  if (expiresAt < Date.now()) {
+    await prisma.session.delete({ where: { id: sessionId } });
     return undefined;
   }
 
-  return session;
+  return {
+    id: session.id,
+    userId: session.userId,
+    expiresAt,
+  };
 }
 
-export function refreshSession(sessionId: string): Session | undefined {
-  const session = getSession(sessionId);
+export async function refreshSession(
+  sessionId: string
+): Promise<Session | undefined> {
+  const session = await getSession(sessionId);
   if (!session) return undefined;
 
   // Sliding expiration
-  session.expiresAt = Date.now() + config.sessionMaxAge;
-  return session;
+  const newExpiresAt = Date.now() + config.sessionMaxAge;
+
+  await prisma.session.update({
+    where: { id: sessionId },
+    data: { expiresAt: BigInt(newExpiresAt) },
+  });
+
+  return {
+    ...session,
+    expiresAt: newExpiresAt,
+  };
 }
 
-export function deleteSession(sessionId: string): boolean {
-  return sessions.delete(sessionId);
+export async function deleteSession(sessionId: string): Promise<boolean> {
+  try {
+    await prisma.session.delete({ where: { id: sessionId } });
+    return true;
+  } catch {
+    return false;
+  }
 }

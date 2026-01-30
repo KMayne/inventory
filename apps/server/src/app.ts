@@ -2,7 +2,7 @@ import express, { type Application, type Request, type Response, type NextFuncti
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { config } from "./config.ts";
-import { refreshSession, deleteSession } from "./store/index.ts";
+import { refreshSession } from "./store/index.ts";
 import type { Session, User } from "@inventory/shared";
 import { getUserById } from "./store/index.ts";
 
@@ -31,21 +31,21 @@ app.use(
 );
 
 // Auth middleware helper
-export const requireAuth: RequestHandler = (req, res, next) => {
+export const requireAuth: RequestHandler = async (req, res, next) => {
   const sessionId = req.cookies[config.sessionCookieName];
   if (!sessionId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const session = refreshSession(sessionId);
+  const session = await refreshSession(sessionId);
   if (!session) {
     clearSessionCookie(res);
     res.status(401).json({ error: "Session expired" });
     return;
   }
 
-  const user = getUserById(session.userId);
+  const user = await getUserById(session.userId);
   if (!user) {
     clearSessionCookie(res);
     res.status(401).json({ error: "User not found" });

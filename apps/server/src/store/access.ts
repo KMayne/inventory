@@ -1,109 +1,140 @@
 import type { InventoryAccess } from "@inventory/shared";
+import { prisma } from "./prisma.ts";
 
-const accessByInventory = new Map<string, InventoryAccess>();
-const inventoriesByUser = new Map<string, Set<string>>(); // userId -> Set<inventoryId>
-
-export function createInventoryAccess(
+export async function createInventoryAccess(
   inventoryId: string,
   ownerId: string
-): InventoryAccess {
-  const access: InventoryAccess = {
-    inventoryId,
-    ownerId,
-    memberIds: [],
+): Promise<InventoryAccess> {
+  const inventory = await prisma.inventory.create({
+    data: {
+      id: inventoryId,
+      ownerId,
+    },
+    include: { members: true },
+  });
+
+  return {
+    inventoryId: inventory.id,
+    ownerId: inventory.ownerId,
+    memberIds: inventory.members.map((m) => m.userId),
   };
-  accessByInventory.set(inventoryId, access);
-
-  // Track for owner
-  if (!inventoriesByUser.has(ownerId)) {
-    inventoriesByUser.set(ownerId, new Set());
-  }
-  inventoriesByUser.get(ownerId)!.add(inventoryId);
-
-  return access;
 }
 
-export function getInventoryAccess(
+export async function getInventoryAccess(
   inventoryId: string
-): InventoryAccess | undefined {
-  return accessByInventory.get(inventoryId);
+): Promise<InventoryAccess | undefined> {
+  const inventory = await prisma.inventory.findUnique({
+    where: { id: inventoryId },
+    include: { members: true },
+  });
+
+  if (!inventory) return undefined;
+
+  return {
+    inventoryId: inventory.id,
+    ownerId: inventory.ownerId,
+    memberIds: inventory.members.map((m) => m.userId),
+  };
 }
 
-export function getInventoriesForUser(userId: string): InventoryAccess[] {
-  const inventoryIds = inventoriesByUser.get(userId);
-  if (!inventoryIds) return [];
+export async function getInventoriesForUser(
+  userId: string
+): Promise<InventoryAccess[]> {
+  // Get inventories where user is owner or member
+  const inventories = await prisma.inventory.findMany({
+    where: {
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+    },
+    include: { members: true },
+  });
 
-  const result: InventoryAccess[] = [];
-  for (const id of inventoryIds) {
-    const access = accessByInventory.get(id);
-    if (access) {
-      result.push(access);
-    }
-  }
-  return result;
+  return inventories.map((inv) => ({
+    inventoryId: inv.id,
+    ownerId: inv.ownerId,
+    memberIds: inv.members.map((m) => m.userId),
+  }));
 }
 
-export function canUserAccessInventory(
+export async function canUserAccessInventory(
   userId: string,
   inventoryId: string
-): boolean {
-  const access = accessByInventory.get(inventoryId);
-  if (!access) return false;
-  return access.ownerId === userId || access.memberIds.includes(userId);
+): Promise<boolean> {
+  const inventory = await prisma.inventory.findFirst({
+    where: {
+      id: inventoryId,
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+    },
+  });
+
+  return inventory !== null;
 }
 
-export function isInventoryOwner(userId: string, inventoryId: string): boolean {
-  const access = accessByInventory.get(inventoryId);
-  if (!access) return false;
-  return access.ownerId === userId;
+export async function isInventoryOwner(
+  userId: string,
+  inventoryId: string
+): Promise<boolean> {
+  const inventory = await prisma.inventory.findFirst({
+    where: {
+      id: inventoryId,
+      ownerId: userId,
+    },
+  });
+
+  return inventory !== null;
 }
 
-export function addMemberToInventory(
+export async function addMemberToInventory(
   inventoryId: string,
   memberId: string
-): boolean {
-  const access = accessByInventory.get(inventoryId);
-  if (!access) return false;
-  if (access.memberIds.includes(memberId)) return true;
-
-  access.memberIds.push(memberId);
-
-  // Track for member
-  if (!inventoriesByUser.has(memberId)) {
-    inventoriesByUser.set(memberId, new Set());
+): Promise<boolean> {
+  try {
+    await prisma.inventoryMember.upsert({
+      where: {
+        inventoryId_userId: {
+          inventoryId,
+          userId: memberId,
+        },
+      },
+      update: {},
+      create: {
+        inventoryId,
+        userId: memberId,
+      },
+    });
+    return true;
+  } catch {
+    return false;
   }
-  inventoriesByUser.get(memberId)!.add(inventoryId);
-
-  return true;
 }
 
-export function removeMemberFromInventory(
+export async function removeMemberFromInventory(
   inventoryId: string,
   memberId: string
-): boolean {
-  const access = accessByInventory.get(inventoryId);
-  if (!access) return false;
-
-  const index = access.memberIds.indexOf(memberId);
-  if (index === -1) return false;
-
-  access.memberIds.splice(index, 1);
-  inventoriesByUser.get(memberId)?.delete(inventoryId);
-
-  return true;
+): Promise<boolean> {
+  try {
+    await prisma.inventoryMember.delete({
+      where: {
+        inventoryId_userId: {
+          inventoryId,
+          userId: memberId,
+        },
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function deleteInventoryAccess(inventoryId: string): boolean {
-  const access = accessByInventory.get(inventoryId);
-  if (!access) return false;
-
-  // Remove from owner's list
-  inventoriesByUser.get(access.ownerId)?.delete(inventoryId);
-
-  // Remove from all members' lists
-  for (const memberId of access.memberIds) {
-    inventoriesByUser.get(memberId)?.delete(inventoryId);
+export async function deleteInventoryAccess(
+  inventoryId: string
+): Promise<boolean> {
+  try {
+    await prisma.inventory.delete({
+      where: { id: inventoryId },
+    });
+    return true;
+  } catch {
+    return false;
   }
-
-  return accessByInventory.delete(inventoryId);
 }

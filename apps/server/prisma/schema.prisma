@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          String       @id @default(uuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  credentials Credential[]
+  sessions    Session[]
+  ownedInventories   Inventory[]       @relation("InventoryOwner")
+  memberInventories  InventoryMember[]
+}
+
+model Credential {
+  id         String  @id
+  publicKey  Bytes
+  counter    Int
+  transports String? // JSON array stored as string
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  id        String @id @default(uuid())
+  userId    String
+  expiresAt BigInt
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Inventory {
+  id       String            @id
+  ownerId  String
+  owner    User              @relation("InventoryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  InventoryMember[]
+
+  @@index([ownerId])
+}
+
+model InventoryMember {
+  inventoryId String
+  userId      String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([inventoryId, userId])
+  @@index([userId])
+}

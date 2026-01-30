@@ -34,14 +34,14 @@ export function setupWebSocketSync(server: HttpServer): WebSocketServer {
         return;
       }
 
-      const session = getSession(sessionId);
+      const session = await getSession(sessionId);
       if (!session) {
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
         socket.destroy();
         return;
       }
 
-      const user = getUserById(session.userId);
+      const user = await getUserById(session.userId);
       if (!user) {
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
         socket.destroy();

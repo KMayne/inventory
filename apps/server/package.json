@@ -14,6 +14,8 @@
     "@automerge/automerge-repo-network-websocket": "^2.0.13",
     "@automerge/automerge-repo-storage-nodefs": "^2.0.13",
     "@inventory/shared": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^7.2.1",
+    "@prisma/client": "^7.2.1",
     "@simplewebauthn/server": "^11.0.0",
     "@simplewebauthn/types": "^11.0.0",
     "cookie": "^1.0.3",
@@ -25,12 +27,14 @@
     "zod": "^3.25.23"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cookie": "^1.0.0",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
+    "prisma": "^7.2.1",
     "typescript": "~5.9.3"
   }
 }

@@ -96,10 +96,10 @@ auth.post("/register/finish", async (req: Request, res: Response) => {
     const { credential } = verification.registrationInfo;
 
     // Create user
-    const user = createUser(name.trim());
+    const user = await createUser(name.trim());
 
     // Add credential
-    addCredentialToUser(user.id, {
+    await addCredentialToUser(user.id, {
       id: credential.id,
       publicKey: credential.publicKey,
       counter: credential.counter,
@@ -113,10 +113,10 @@ auth.post("/register/finish", async (req: Request, res: Response) => {
       doc.name = "Inventory";
       doc.items = {};
     });
-    createInventoryAccess(handle.documentId, user.id);
+    await createInventoryAccess(handle.documentId, user.id);
 
     // Create session
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
     setSessionCookie(res, session);
 
     res.json({
@@ -160,13 +160,13 @@ auth.post("/login/finish", async (req: Request, res: Response) => {
 
   try {
     // Find user by credential ID
-    const user = getUserByCredentialId(response.id);
+    const user = await getUserByCredentialId(response.id);
     if (!user) {
       res.status(401).json({ error: "Credential not found" });
       return;
     }
 
-    const credential = getCredentialById(user.id, response.id);
+    const credential = await getCredentialById(user.id, response.id);
     if (!credential) {
       res.status(401).json({ error: "Credential not found" });
       return;
@@ -191,17 +191,17 @@ auth.post("/login/finish", async (req: Request, res: Response) => {
     }
 
     // Update counter
-    updateCredentialCounter(
+    await updateCredentialCounter(
       user.id,
       credential.id,
       verification.authenticationInfo.newCounter
     );
 
     // Create session
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
     setSessionCookie(res, session);
 
-    const inventories = getInventoriesForUser(user.id);
+    const inventories = await getInventoriesForUser(user.id);
 
     res.json({
       user: { id: user.id, name: user.name },
@@ -224,14 +224,14 @@ auth.get("/me", async (req: Request, res: Response) => {
     return;
   }
 
-  const session = refreshSession(sessionId);
+  const session = await refreshSession(sessionId);
   if (!session) {
     clearSessionCookie(res);
     res.json({ user: null });
     return;
   }
 
-  const user = getUserById(session.userId);
+  const user = await getUserById(session.userId);
   if (!user) {
     clearSessionCookie(res);
     res.json({ user: null });
@@ -240,7 +240,7 @@ auth.get("/me", async (req: Request, res: Response) => {
 
   setSessionCookie(res, session);
 
-  const inventories = getInventoriesForUser(user.id);
+  const inventories = await getInventoriesForUser(user.id);
 
   res.json({
     user: { id: user.id, name: user.name },
@@ -255,7 +255,7 @@ auth.get("/me", async (req: Request, res: Response) => {
 auth.post("/logout", async (req: Request, res: Response) => {
   const sessionId = req.cookies[config.sessionCookieName];
   if (sessionId) {
-    deleteSession(sessionId);
+    await deleteSession(sessionId);
   }
   clearSessionCookie(res);
   res.json({ success: true });

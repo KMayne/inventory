@@ -1,59 +1,119 @@
 import type { User, StoredCredential } from "@inventory/shared";
+import type { AuthenticatorTransportFuture } from "@simplewebauthn/types";
+import { prisma } from "./prisma.ts";
 
-const users = new Map<string, User>();
-const credentialToUser = new Map<string, string>(); // credentialId -> userId
+export async function createUser(name: string): Promise<User> {
+  const user = await prisma.user.create({
+    data: { name },
+    include: { credentials: true },
+  });
 
-export function createUser(name: string): User {
-  const user: User = {
-    id: crypto.randomUUID(),
-    name,
-    credentials: [],
-    createdAt: new Date().toISOString(),
+  return {
+    id: user.id,
+    name: user.name,
+    credentials: user.credentials.map(credentialToStored),
+    createdAt: user.createdAt.toISOString(),
   };
-  users.set(user.id, user);
-  return user;
 }
 
-export function getUserById(id: string): User | undefined {
-  return users.get(id);
+export async function getUserById(id: string): Promise<User | undefined> {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: { credentials: true },
+  });
+
+  if (!user) return undefined;
+
+  return {
+    id: user.id,
+    name: user.name,
+    credentials: user.credentials.map(credentialToStored),
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
-export function getUserByCredentialId(credentialId: string): User | undefined {
-  const userId = credentialToUser.get(credentialId);
-  if (!userId) return undefined;
-  return users.get(userId);
+export async function getUserByCredentialId(
+  credentialId: string
+): Promise<User | undefined> {
+  const credential = await prisma.credential.findUnique({
+    where: { id: credentialId },
+    include: {
+      user: {
+        include: { credentials: true },
+      },
+    },
+  });
+
+  if (!credential) return undefined;
+
+  const user = credential.user;
+  return {
+    id: user.id,
+    name: user.name,
+    credentials: user.credentials.map(credentialToStored),
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
-export function addCredentialToUser(
+export async function addCredentialToUser(
   userId: string,
   credential: StoredCredential
-): void {
-  const user = users.get(userId);
-  if (!user) {
-    throw new Error(`User ${userId} not found`);
-  }
-  user.credentials.push(credential);
-  credentialToUser.set(credential.id, userId);
+): Promise<void> {
+  await prisma.credential.create({
+    data: {
+      id: credential.id,
+      publicKey: Buffer.from(credential.publicKey),
+      counter: credential.counter,
+      transports: credential.transports
+        ? JSON.stringify(credential.transports)
+        : null,
+      userId,
+    },
+  });
 }
 
-export function getCredentialById(
+export async function getCredentialById(
   userId: string,
   credentialId: string
-): StoredCredential | undefined {
-  const user = users.get(userId);
-  if (!user) return undefined;
-  return user.credentials.find((c) => c.id === credentialId);
+): Promise<StoredCredential | undefined> {
+  const credential = await prisma.credential.findFirst({
+    where: {
+      id: credentialId,
+      userId,
+    },
+  });
+
+  if (!credential) return undefined;
+
+  return credentialToStored(credential);
 }
 
-export function updateCredentialCounter(
+export async function updateCredentialCounter(
   userId: string,
   credentialId: string,
   counter: number
-): void {
-  const user = users.get(userId);
-  if (!user) return;
-  const credential = user.credentials.find((c) => c.id === credentialId);
-  if (credential) {
-    credential.counter = counter;
-  }
+): Promise<void> {
+  await prisma.credential.updateMany({
+    where: {
+      id: credentialId,
+      userId,
+    },
+    data: { counter },
+  });
+}
+
+function credentialToStored(credential: {
+  id: string;
+  publicKey: Uint8Array;
+  counter: number;
+  transports: string | null;
+}): StoredCredential {
+  return {
+    id: credential.id,
+    publicKey: credential.publicKey,
+    counter: credential.counter,
+    transports: credential.transports
+      ? (JSON.parse(credential.transports) as AuthenticatorTransportFuture[])
+      : undefined,
+  };
 }
