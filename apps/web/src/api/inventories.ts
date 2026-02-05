@@ -43,6 +43,13 @@ export const inventoryApi = {
     return api(`/api/inventories/${id}`, { method: "DELETE" });
   },
 
+  update(id: string, data: { name?: string }): Promise<{ inventory: { id: string; name: string } }> {
+    return api(`/api/inventories/${id}`, {
+      method: "PATCH",
+      body: data,
+    });
+  },
+
   addMember(inventoryId: string, userId: string): Promise<{ success: boolean }> {
     return api(`/api/inventories/${inventoryId}/members`, {
       method: "POST",

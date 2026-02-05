@@ -24,6 +24,7 @@ export {
   addMemberToInventory,
   removeMemberFromInventory,
   deleteInventoryAccess,
+  updateInventory,
   getInventoryMembersWithNames,
   getAvailableUsersForInventory,
 } from "./access.ts";

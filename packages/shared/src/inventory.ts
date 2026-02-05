@@ -1,11 +1,11 @@
 export interface InventoryAccess {
   inventoryId: string; // = Automerge document ID
+  name: string;
   ownerId: string;
   memberIds: string[];
 }
 
 export interface InventoryDoc {
-  name: string;
   items: { [id: string]: InventoryItem };
 }
 

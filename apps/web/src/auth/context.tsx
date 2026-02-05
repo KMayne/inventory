@@ -40,6 +40,7 @@ interface AuthContextValue extends AuthState {
   setCurrentInventoryId: (id: string) => void;
   setInventories: (inventories: InventoryInfo[]) => void;
   addInventory: (inventory: InventoryInfo) => void;
+  updateInventory: (id: string, updates: Partial<InventoryInfo>) => void;
   removeInventory: (id: string) => void;
 }
 
@@ -176,6 +177,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }));
   }, []);
 
+  const updateInventory = useCallback((id: string, updates: Partial<InventoryInfo>) => {
+    setState((prev) => ({
+      ...prev,
+      inventories: prev.inventories.map((inv) =>
+        inv.id === id ? { ...inv, ...updates } : inv
+      ),
+    }));
+  }, []);
+
   const removeInventory = useCallback((id: string) => {
     setState((prev) => {
       const inventories = prev.inventories.filter((i) => i.id !== id);
@@ -205,6 +215,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setCurrentInventoryId,
         setInventories,
         addInventory,
+        updateInventory,
         removeInventory,
       }}
     >

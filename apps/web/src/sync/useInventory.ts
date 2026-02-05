@@ -69,7 +69,6 @@ export function useInventory() {
   );
 
   return {
-    name: doc?.name ?? "Inventory",
     items,
     isLoading: inventoryId !== null && !doc,
     addItem,

@@ -29,7 +29,6 @@ import {
 } from "../app.ts";
 import { getRepo } from "../repo.ts";
 import type { InventoryDoc } from "@inventory/shared";
-import type { DocumentId } from "@automerge/automerge-repo";
 
 const auth: IRouter = Router();
 
@@ -111,10 +110,9 @@ auth.post("/register/finish", async (req: Request, res: Response) => {
     const repo = getRepo();
     const handle = repo.create<InventoryDoc>();
     handle.change((doc) => {
-      doc.name = "Inventory";
       doc.items = {};
     });
-    await createInventoryAccess(handle.documentId, user.id);
+    await createInventoryAccess(handle.documentId, user.id, "Inventory");
 
     // Create session
     const session = await createSession(user.id);
@@ -203,23 +201,14 @@ auth.post("/login/finish", async (req: Request, res: Response) => {
     setSessionCookie(res, session);
 
     const userInventories = await getInventoriesForUser(user.id);
-    const repo = getRepo();
-
-    const inventoriesWithNames = await Promise.all(
-      userInventories.map(async (a) => {
-        const handle = await repo.find<InventoryDoc>(a.inventoryId as DocumentId);
-        const doc = handle.docSync();
-        return {
-          id: a.inventoryId,
-          name: doc?.name ?? "Inventory",
-          isOwner: a.ownerId === user.id,
-        };
-      })
-    );
 
     res.json({
       user: { id: user.id, name: user.name },
-      inventories: inventoriesWithNames,
+      inventories: userInventories.map((inv) => ({
+        id: inv.inventoryId,
+        name: inv.name,
+        isOwner: inv.ownerId === user.id,
+      })),
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -252,23 +241,14 @@ auth.get("/me", async (req: Request, res: Response) => {
   setSessionCookie(res, session);
 
   const userInventories = await getInventoriesForUser(user.id);
-  const repo = getRepo();
-
-  const inventoriesWithNames = await Promise.all(
-    userInventories.map(async (a) => {
-      const handle = await repo.find<InventoryDoc>(a.inventoryId as DocumentId);
-      const doc = handle.docSync();
-      return {
-        id: a.inventoryId,
-        name: doc?.name ?? "Inventory",
-        isOwner: a.ownerId === user.id,
-      };
-    })
-  );
 
   res.json({
     user: { id: user.id, name: user.name },
-    inventories: inventoriesWithNames,
+    inventories: userInventories.map((inv) => ({
+      id: inv.inventoryId,
+      name: inv.name,
+      isOwner: inv.ownerId === user.id,
+    })),
   });
 });
 

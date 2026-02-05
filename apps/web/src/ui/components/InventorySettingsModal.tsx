@@ -7,8 +7,13 @@ interface InventorySettingsModalProps {
 }
 
 export function InventorySettingsModal({ onClose }: InventorySettingsModalProps) {
-  const { inventories, currentInventoryId, removeInventory } = useAuth();
+  const { inventories, currentInventoryId, updateInventory, removeInventory } = useAuth();
 
+  const currentInventory = inventories.find((i) => i.id === currentInventoryId);
+  const isOwner = currentInventory?.isOwner ?? false;
+  const name = currentInventory?.name ?? "Inventory";
+
+  const [editedName, setEditedName] = useState(name);
   const [availableUsers, setAvailableUsers] = useState<UserInfo[]>([]);
   const [members, setMembers] = useState<UserInfo[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -16,10 +21,7 @@ export function InventorySettingsModal({ onClose }: InventorySettingsModalProps)
   const [success, setSuccess] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const currentInventory = inventories.find((i) => i.id === currentInventoryId);
-  const isOwner = currentInventory?.isOwner ?? false;
-  const name = currentInventory?.name ?? "Inventory";
+  const [renaming, setRenaming] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!isOwner || !currentInventoryId) return;
@@ -74,6 +76,21 @@ export function InventorySettingsModal({ onClose }: InventorySettingsModalProps)
     }
   };
 
+  const handleRename = async () => {
+    if (!currentInventoryId || !editedName.trim()) return;
+
+    setRenaming(true);
+    try {
+      const result = await inventoryApi.update(currentInventoryId, { name: editedName.trim() });
+      updateInventory(currentInventoryId, { name: result.inventory.name });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename");
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!currentInventoryId) return;
 
@@ -104,11 +121,31 @@ export function InventorySettingsModal({ onClose }: InventorySettingsModalProps)
 
         <div className="inventory-settings-content">
           <div className="settings-section">
-            <h3>{name}</h3>
+            {isOwner ? (
+              <div className="rename-form">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="rename-input"
+                  disabled={renaming}
+                />
+                {editedName.trim() !== name && (
+                  <button
+                    onClick={handleRename}
+                    className="btn-rename"
+                    disabled={renaming || !editedName.trim()}
+                  >
+                    {renaming ? "Saving..." : "Save"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <h3>{name}</h3>
+            )}
             <p className="settings-meta">
               {isOwner ? "You own this inventory" : "Shared with you"}
             </p>
-            <p className="settings-id">ID: {currentInventoryId}</p>
           </div>
 
           {isOwner && (

@@ -782,6 +782,53 @@ button {
   color: var(--color-text-muted);
 }
 
+.rename-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rename-input {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.rename-input:hover {
+  border-color: var(--color-border);
+}
+
+.rename-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-bg);
+}
+
+.btn-rename {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+}
+
+.btn-rename:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-rename:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .settings-danger-zone {
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);

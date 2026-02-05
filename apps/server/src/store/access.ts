@@ -3,11 +3,13 @@ import { prisma } from "./prisma.ts";
 
 export async function createInventoryAccess(
   inventoryId: string,
-  ownerId: string
+  ownerId: string,
+  name: string
 ): Promise<InventoryAccess> {
   const inventory = await prisma.inventory.create({
     data: {
       id: inventoryId,
+      name,
       ownerId,
     },
     include: { members: true },
@@ -15,6 +17,7 @@ export async function createInventoryAccess(
 
   return {
     inventoryId: inventory.id,
+    name: inventory.name,
     ownerId: inventory.ownerId,
     memberIds: inventory.members.map((m) => m.userId),
   };
@@ -32,6 +35,7 @@ export async function getInventoryAccess(
 
   return {
     inventoryId: inventory.id,
+    name: inventory.name,
     ownerId: inventory.ownerId,
     memberIds: inventory.members.map((m) => m.userId),
   };
@@ -50,6 +54,7 @@ export async function getInventoriesForUser(
 
   return inventories.map((inv) => ({
     inventoryId: inv.id,
+    name: inv.name,
     ownerId: inv.ownerId,
     memberIds: inv.members.map((m) => m.userId),
   }));
@@ -136,6 +141,22 @@ export async function deleteInventoryAccess(
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function updateInventory(
+  inventoryId: string,
+  data: { name?: string }
+): Promise<{ id: string; name: string } | null> {
+  try {
+    const inventory = await prisma.inventory.update({
+      where: { id: inventoryId },
+      data,
+      select: { id: true, name: true },
+    });
+    return inventory;
+  } catch {
+    return null;
   }
 }
 

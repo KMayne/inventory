@@ -38,6 +38,7 @@ model Session {
 
 model Inventory {
   id       String            @id
+  name     String
   ownerId  String
   owner    User              @relation("InventoryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members  InventoryMember[]

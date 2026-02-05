@@ -7,12 +7,12 @@ import {
   addMemberToInventory,
   removeMemberFromInventory,
   deleteInventoryAccess,
+  updateInventory,
   getInventoryMembersWithNames,
   getAvailableUsersForInventory,
 } from "../store/index.ts";
 import { getRepo } from "../repo.ts";
 import type { InventoryDoc } from "@inventory/shared";
-import type { DocumentId } from "@automerge/automerge-repo";
 
 const inventories: IRouter = Router();
 
@@ -23,21 +23,14 @@ inventories.use(requireAuth);
 inventories.get("/", async (req: Request, res: Response) => {
   const user = req.user!;
   const userInventories = await getInventoriesForUser(user.id);
-  const repo = getRepo();
 
-  const inventoriesWithNames = await Promise.all(
-    userInventories.map(async (a) => {
-      const handle = await repo.find<InventoryDoc>(a.inventoryId as DocumentId);
-      const doc = handle.docSync();
-      return {
-        id: a.inventoryId,
-        name: doc?.name ?? "Inventory",
-        isOwner: a.ownerId === user.id,
-      };
-    })
-  );
-
-  res.json({ inventories: inventoriesWithNames });
+  res.json({
+    inventories: userInventories.map((inv) => ({
+      id: inv.inventoryId,
+      name: inv.name,
+      isOwner: inv.ownerId === user.id,
+    })),
+  });
 });
 
 // POST /api/inventories
@@ -49,11 +42,10 @@ inventories.post("/", async (req: Request, res: Response) => {
   const repo = getRepo();
   const handle = repo.create<InventoryDoc>();
   handle.change((doc) => {
-    doc.name = inventoryName;
     doc.items = {};
   });
 
-  await createInventoryAccess(handle.documentId, user.id);
+  await createInventoryAccess(handle.documentId, user.id, inventoryName);
 
   res.json({
     inventory: {
@@ -62,6 +54,41 @@ inventories.post("/", async (req: Request, res: Response) => {
       isOwner: true,
     },
   });
+});
+
+// PATCH /api/inventories/:id
+inventories.patch("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
+
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
+    res.status(403).json({ error: "Only the owner can update an inventory" });
+    return;
+  }
+
+  const { name } = req.body as { name?: string };
+  const updates: { name?: string } = {};
+
+  if (name !== undefined) {
+    if (!name.trim()) {
+      res.status(400).json({ error: "Name cannot be empty" });
+      return;
+    }
+    updates.name = name.trim();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+
+  const inventory = await updateInventory(inventoryId, updates);
+  if (!inventory) {
+    res.status(404).json({ error: "Inventory not found" });
+    return;
+  }
+
+  res.json({ inventory });
 });
 
 // DELETE /api/inventories/:id
