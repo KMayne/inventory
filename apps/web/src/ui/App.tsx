@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../auth";
 import { useSearchItems, useItemMutations } from "../store";
 import {
@@ -11,12 +11,41 @@ import {
 } from "./components";
 import type { Item } from "../domain";
 
+function useSettingsHash() {
+  const [settingsOpen, setSettingsOpenState] = useState(
+    () => window.location.hash === "#settings"
+  );
+
+  useEffect(() => {
+    function handleHashChange() {
+      setSettingsOpenState(window.location.hash === "#settings");
+    }
+    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("popstate", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("popstate", handleHashChange);
+    };
+  }, []);
+
+  const setSettingsOpen = useCallback((open: boolean) => {
+    if (open) {
+      window.history.pushState(null, "", "#settings");
+    } else {
+      window.history.pushState(null, "", window.location.pathname);
+    }
+    setSettingsOpenState(open);
+  }, []);
+
+  return [settingsOpen, setSettingsOpen] as const;
+}
+
 export function App() {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [showInventorySettings, setShowInventorySettings] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useSettingsHash();
 
   const items = useSearchItems(searchQuery);
   const { addItem, updateItem, removeItem } = useItemMutations();
@@ -44,7 +73,7 @@ export function App() {
       </header>
 
       <div className="inventory-bar">
-        <InventorySelector onOpenSettings={() => setShowInventorySettings(true)} />
+        <InventorySelector onOpenSettings={() => setSettingsOpen(true)} />
       </div>
 
       <main className="app-main">
@@ -81,8 +110,8 @@ export function App() {
         />
       )}
 
-      {showInventorySettings && (
-        <InventorySettingsModal onClose={() => setShowInventorySettings(false)} />
+      {settingsOpen && (
+        <InventorySettingsModal onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

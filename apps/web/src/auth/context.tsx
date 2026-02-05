@@ -16,6 +16,16 @@ import {
   type InventoryInfo,
 } from "./api";
 
+function getInventoryIdFromUrl(): string | null {
+  const match = window.location.pathname.match(/^\/inventory\/(.+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function navigateToInventory(id: string, preserveHash = true) {
+  const hash = preserveHash ? window.location.hash : "";
+  window.history.replaceState(null, "", `/inventory/${encodeURIComponent(id)}${hash}`);
+}
+
 interface AuthState {
   user: UserInfo | null;
   inventories: InventoryInfo[];
@@ -53,16 +63,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
       .me()
       .then((data) => {
         const inventories = data.inventories ?? [];
+        const urlInventoryId = getInventoryIdFromUrl();
+
+        // Use URL inventory if valid, otherwise use first inventory
+        let currentInventoryId: string | null = null;
+        if (urlInventoryId && inventories.some((i) => i.id === urlInventoryId)) {
+          currentInventoryId = urlInventoryId;
+        } else if (inventories.length > 0) {
+          currentInventoryId = inventories[0].id;
+          navigateToInventory(inventories[0].id);
+        }
+
         setState({
           user: data.user,
           inventories,
-          currentInventoryId: inventories[0]?.id ?? null,
+          currentInventoryId,
           isLoading: false,
         });
       })
       .catch(() => {
         setState({ user: null, inventories: [], currentInventoryId: null, isLoading: false });
       });
+  }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    function handlePopState() {
+      const urlInventoryId = getInventoryIdFromUrl();
+      if (urlInventoryId) {
+        setState((prev) => {
+          if (prev.inventories.some((i) => i.id === urlInventoryId)) {
+            return { ...prev, currentInventoryId: urlInventoryId };
+          }
+          return prev;
+        });
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const register = useCallback(async (name: string) => {
@@ -76,6 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const result = await authApi.registerFinish(tempId, name, credential);
 
     const inventories = [{ id: result.inventoryId, name: "Inventory", isOwner: true }];
+    navigateToInventory(result.inventoryId, false);
     setState({
       user: result.user,
       inventories,
@@ -94,10 +134,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Finish login on server
     const result = await authApi.loginFinish(tempId, credential);
 
+    const currentInventoryId = result.inventories[0]?.id ?? null;
+    if (currentInventoryId) {
+      navigateToInventory(currentInventoryId, false);
+    }
     setState({
       user: result.user,
       inventories: result.inventories,
-      currentInventoryId: result.inventories[0]?.id ?? null,
+      currentInventoryId,
       isLoading: false,
     });
   }, []);
@@ -108,6 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const setCurrentInventoryId = useCallback((id: string) => {
+    navigateToInventory(id, false);
     setState((prev) => ({ ...prev, currentInventoryId: id }));
   }, []);
 
@@ -123,6 +168,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const addInventory = useCallback((inventory: InventoryInfo) => {
+    navigateToInventory(inventory.id, false);
     setState((prev) => ({
       ...prev,
       inventories: [...prev.inventories, inventory],
@@ -133,13 +179,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const removeInventory = useCallback((id: string) => {
     setState((prev) => {
       const inventories = prev.inventories.filter((i) => i.id !== id);
+      const newCurrentId = prev.currentInventoryId === id
+        ? inventories[0]?.id ?? null
+        : prev.currentInventoryId;
+
+      if (newCurrentId && newCurrentId !== prev.currentInventoryId) {
+        navigateToInventory(newCurrentId, false);
+      }
+
       return {
         ...prev,
         inventories,
-        currentInventoryId:
-          prev.currentInventoryId === id
-            ? inventories[0]?.id ?? null
-            : prev.currentInventoryId,
+        currentInventoryId: newCurrentId,
       };
     });
   }, []);
