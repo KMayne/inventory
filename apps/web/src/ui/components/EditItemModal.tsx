@@ -103,9 +103,7 @@ export function EditItemModal({ item, onSave, onDelete, onClose }: EditItemModal
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="add-item-form">
-          {error && <div className="form-error">{error}</div>}
-
+        <form onSubmit={handleSubmit} className="add-item-form" noValidate>
           <div className="form-field">
             <label htmlFor="name">Name *</label>
             <input
@@ -154,6 +152,8 @@ export function EditItemModal({ item, onSave, onDelete, onClose }: EditItemModal
             attributes={form.attributes}
             onChange={(attrs) => updateField("attributes", attrs)}
           />
+
+          {error && <div className="form-error">{error}</div>}
 
           <div className="form-actions">
             {showDeleteConfirm ? (

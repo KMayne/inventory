@@ -9,8 +9,9 @@ import {
   InventorySelector,
   InventorySettingsModal,
   ProfileModal,
+  BulkImportModal,
 } from "./components";
-import type { Item } from "../domain";
+import type { Item, NewItem } from "../domain";
 
 function getSearchFromUrl(): string {
   const params = new URLSearchParams(window.location.search);
@@ -48,14 +49,13 @@ function useSearchQuery() {
   return [query, setQuery] as const;
 }
 
-function useSettingsHash() {
-  const [settingsOpen, setSettingsOpenState] = useState(
-    () => window.location.hash === "#settings"
-  );
+function useHashModal(hashName: string) {
+  const hash = `#${hashName}`;
+  const [isOpen, setIsOpenState] = useState(() => window.location.hash === hash);
 
   useEffect(() => {
     function handleHashChange() {
-      setSettingsOpenState(window.location.hash === "#settings");
+      setIsOpenState(window.location.hash === hash);
     }
     window.addEventListener("hashchange", handleHashChange);
     window.addEventListener("popstate", handleHashChange);
@@ -63,18 +63,18 @@ function useSettingsHash() {
       window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("popstate", handleHashChange);
     };
-  }, []);
+  }, [hash]);
 
-  const setSettingsOpen = useCallback((open: boolean) => {
+  const setIsOpen = useCallback((open: boolean) => {
     if (open) {
-      window.history.pushState(null, "", window.location.pathname + window.location.search + "#settings");
+      window.history.pushState(null, "", window.location.pathname + window.location.search + hash);
     } else {
       window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
-    setSettingsOpenState(open);
-  }, []);
+    setIsOpenState(open);
+  }, [hash]);
 
-  return [settingsOpen, setSettingsOpen] as const;
+  return [isOpen, setIsOpen] as const;
 }
 
 export function App() {
@@ -83,7 +83,8 @@ export function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useSettingsHash();
+  const [settingsOpen, setSettingsOpen] = useHashModal("settings");
+  const [showBulkImportModal, setShowBulkImportModal] = useHashModal("import");
 
   const items = useSearchItems(searchQuery);
   const { addItem, updateItem, removeItem } = useItemMutations();
@@ -125,6 +126,12 @@ export function App() {
           >
             + Add Item
           </button>
+          <button
+            onClick={() => setShowBulkImportModal(true)}
+            className="btn-import"
+          >
+            Import items
+          </button>
         </div>
 
         <ItemList
@@ -156,6 +163,13 @@ export function App() {
 
       {showProfileModal && (
         <ProfileModal onClose={() => setShowProfileModal(false)} />
+      )}
+
+      {showBulkImportModal && (
+        <BulkImportModal
+          onImport={(items: NewItem[]) => items.forEach(addItem)}
+          onClose={() => setShowBulkImportModal(false)}
+        />
       )}
     </div>
   );

@@ -2,7 +2,7 @@ export type {
   StoredCredential,
   User,
   Session,
-} from "./user.ts";
+} from "./user";
 
 export type {
   InventoryAccess,
@@ -12,4 +12,14 @@ export type {
   ItemAttribute,
   NewInventoryItem,
   NewItemAttribute,
-} from "./inventory.ts";
+} from "./inventory";
+
+export {
+  attributeTypeSchema,
+  itemAttributeSchema,
+  newItemAttributeSchema,
+  inventoryItemSchema,
+  newInventoryItemSchema,
+  importItemSchema,
+  importItemsSchema,
+} from "./inventory";

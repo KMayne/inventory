@@ -11,7 +11,10 @@
       "Bash(pnpm view:*)",
       "Bash(pnpm --filter @inventory/server build:*)",
       "Bash(timeout 15 npx vite build:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(pnpm --filter @inventory/shared typecheck:*)",
+      "Bash(pnpm --filter web typecheck:*)",
+      "Bash(pnpm run build:*)"
     ]
   }
 }

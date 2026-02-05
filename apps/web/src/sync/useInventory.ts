@@ -23,6 +23,10 @@ export function useInventory() {
       const item: InventoryItem = {
         ...newItem,
         id: crypto.randomUUID(),
+        attributes: newItem.attributes.map((attr) => ({
+          ...attr,
+          id: crypto.randomUUID(),
+        })),
       };
 
       changeDoc((d) => {
@@ -40,8 +44,13 @@ export function useInventory() {
       if (!changeDoc) return;
 
       changeDoc((d) => {
-        if (!d.items) return;
-        d.items[item.id] = item;
+        if (!d.items?.[item.id]) return;
+        const existing = d.items[item.id];
+        existing.name = item.name;
+        existing.quantity = item.quantity;
+        existing.notes = item.notes;
+        existing.locationPath = [...item.locationPath];
+        existing.attributes = item.attributes.map((attr) => ({ ...attr }));
       });
     },
     [changeDoc]

@@ -9,3 +9,4 @@ export { InventorySelector } from "./InventorySelector";
 export { InventorySettingsModal } from "./InventorySettingsModal";
 export { CreateInventoryModal } from "./CreateInventoryModal";
 export { ProfileModal } from "./ProfileModal";
+export { BulkImportModal } from "./BulkImportModal";
