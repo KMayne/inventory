@@ -13,6 +13,7 @@ import { config } from "../config.ts";
 import {
   createUser,
   getUserById,
+  updateUser,
   getUserByCredentialId,
   addCredentialToUser,
   getCredentialById,
@@ -250,6 +251,47 @@ auth.get("/me", async (req: Request, res: Response) => {
       isOwner: inv.ownerId === user.id,
     })),
   });
+});
+
+// PATCH /auth/me
+auth.patch("/me", async (req: Request, res: Response) => {
+  const sessionId = req.cookies[config.sessionCookieName];
+  if (!sessionId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const session = await refreshSession(sessionId);
+  if (!session) {
+    clearSessionCookie(res);
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { name } = req.body as { name?: string };
+  const updates: { name?: string } = {};
+
+  if (name !== undefined) {
+    if (!name.trim()) {
+      res.status(400).json({ error: "Name cannot be empty" });
+      return;
+    }
+    updates.name = name.trim();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+
+  const user = await updateUser(session.userId, updates);
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  setSessionCookie(res, session);
+  res.json({ user });
 });
 
 // POST /auth/logout

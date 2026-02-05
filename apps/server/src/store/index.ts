@@ -2,6 +2,7 @@ export {
   createUser,
   getAllUsers,
   getUserById,
+  updateUser,
   getUserByCredentialId,
   addCredentialToUser,
   getCredentialById,

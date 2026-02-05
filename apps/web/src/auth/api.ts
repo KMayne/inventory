@@ -99,4 +99,11 @@ export const authApi = {
   logout(): Promise<{ success: boolean }> {
     return api("/auth/logout", { method: "POST" });
   },
+
+  updateMe(data: { name?: string }): Promise<{ user: UserInfo }> {
+    return api("/auth/me", {
+      method: "PATCH",
+      body: data,
+    });
+  },
 };

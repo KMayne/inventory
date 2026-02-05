@@ -40,6 +40,22 @@ export async function getUserById(id: string): Promise<User | undefined> {
   };
 }
 
+export async function updateUser(
+  id: string,
+  data: { name?: string }
+): Promise<{ id: string; name: string } | null> {
+  try {
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: { id: true, name: true },
+    });
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 export async function getUserByCredentialId(
   credentialId: string
 ): Promise<User | undefined> {

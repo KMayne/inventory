@@ -8,6 +8,7 @@ import {
   EditItemModal,
   InventorySelector,
   InventorySettingsModal,
+  ProfileModal,
 } from "./components";
 import type { Item } from "../domain";
 
@@ -45,6 +46,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [settingsOpen, setSettingsOpen] = useSettingsHash();
 
   const items = useSearchItems(searchQuery);
@@ -65,7 +67,9 @@ export function App() {
           <h1>Home Inventory</h1>
         </div>
         <div className="header-right">
-          <span className="user-name">{user?.name}</span>
+          <button onClick={() => setShowProfileModal(true)} className="btn-user-name">
+            {user?.name}
+          </button>
           <button onClick={handleLogout} className="btn-logout">
             Sign out
           </button>
@@ -112,6 +116,10 @@ export function App() {
 
       {settingsOpen && (
         <InventorySettingsModal onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {showProfileModal && (
+        <ProfileModal onClose={() => setShowProfileModal(false)} />
       )}
     </div>
   );

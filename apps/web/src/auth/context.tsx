@@ -37,6 +37,7 @@ interface AuthContextValue extends AuthState {
   register: (name: string) => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<UserInfo>) => void;
   setCurrentInventoryId: (id: string) => void;
   setInventories: (inventories: InventoryInfo[]) => void;
   addInventory: (inventory: InventoryInfo) => void;
@@ -152,6 +153,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState({ user: null, inventories: [], currentInventoryId: null, isLoading: false });
   }, []);
 
+  const updateUser = useCallback((updates: Partial<UserInfo>) => {
+    setState((prev) => ({
+      ...prev,
+      user: prev.user ? { ...prev.user, ...updates } : null,
+    }));
+  }, []);
+
   const setCurrentInventoryId = useCallback((id: string) => {
     navigateToInventory(id, false);
     setState((prev) => ({ ...prev, currentInventoryId: id }));
@@ -212,6 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         register,
         login,
         logout,
+        updateUser,
         setCurrentInventoryId,
         setInventories,
         addInventory,
