@@ -12,6 +12,42 @@ import {
 } from "./components";
 import type { Item } from "../domain";
 
+function getSearchFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("q") ?? "";
+}
+
+function buildUrlWithSearch(query: string): string {
+  const params = new URLSearchParams(window.location.search);
+  if (query) {
+    params.set("q", query);
+  } else {
+    params.delete("q");
+  }
+  const search = params.toString();
+  return window.location.pathname + (search ? `?${search}` : "") + window.location.hash;
+}
+
+function useSearchQuery() {
+  const [query, setQueryState] = useState(getSearchFromUrl);
+
+  useEffect(() => {
+    function handlePopState() {
+      setQueryState(getSearchFromUrl());
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const setQuery = useCallback((newQuery: string) => {
+    const url = buildUrlWithSearch(newQuery);
+    window.history.replaceState(null, "", url);
+    setQueryState(newQuery);
+  }, []);
+
+  return [query, setQuery] as const;
+}
+
 function useSettingsHash() {
   const [settingsOpen, setSettingsOpenState] = useState(
     () => window.location.hash === "#settings"
@@ -31,9 +67,9 @@ function useSettingsHash() {
 
   const setSettingsOpen = useCallback((open: boolean) => {
     if (open) {
-      window.history.pushState(null, "", "#settings");
+      window.history.pushState(null, "", window.location.pathname + window.location.search + "#settings");
     } else {
-      window.history.pushState(null, "", window.location.pathname);
+      window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
     setSettingsOpenState(open);
   }, []);
@@ -43,7 +79,7 @@ function useSettingsHash() {
 
 export function App() {
   const { user, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useSearchQuery();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
