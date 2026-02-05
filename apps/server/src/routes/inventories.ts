@@ -7,6 +7,8 @@ import {
   addMemberToInventory,
   removeMemberFromInventory,
   deleteInventoryAccess,
+  getInventoryMembersWithNames,
+  getAvailableUsersForInventory,
 } from "../store/index.ts";
 import { getRepo } from "../repo.ts";
 import type { InventoryDoc } from "@inventory/shared";
@@ -78,6 +80,39 @@ inventories.delete("/:id", async (req: Request<{ id: string }>, res: Response) =
   // In a real app, you might want to mark it as deleted or archive it
 
   res.json({ success: true });
+});
+
+// GET /api/inventories/:id/members
+inventories.get("/:id/members", async (req: Request<{ id: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
+
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
+    res.status(403).json({ error: "Only the owner can view members" });
+    return;
+  }
+
+  const result = await getInventoryMembersWithNames(inventoryId);
+  if (!result) {
+    res.status(404).json({ error: "Inventory not found" });
+    return;
+  }
+
+  res.json({ members: result.members });
+});
+
+// GET /api/inventories/:id/possible-members
+inventories.get("/:id/possible-members", async (req: Request<{ id: string }>, res: Response) => {
+  const user = req.user!;
+  const inventoryId = req.params.id;
+
+  if (!(await isInventoryOwner(user.id, inventoryId))) {
+    res.status(403).json({ error: "Only the owner can view available users" });
+    return;
+  }
+
+  const users = await getAvailableUsersForInventory(inventoryId, user.id);
+  res.json({ users });
 });
 
 // POST /api/inventories/:id/members

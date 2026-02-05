@@ -321,7 +321,7 @@ button {
 
 .form-error {
   padding: 0.75rem;
-  margin-bottom: 1rem;
+  margin-top: 0.75rem;
   background: rgba(220, 38, 38, 0.1);
   border: 1px solid var(--color-danger);
   border-radius: var(--radius);
@@ -787,12 +787,17 @@ button {
   border-top: 1px solid var(--color-border);
 }
 
-.share-form {
+.share-form,
+.add-member-form {
   display: flex;
   gap: 0.5rem;
 }
 
-.share-input {
+.add-member-form {
+  margin-top: 0.75rem;
+}
+
+.share-select {
   flex: 1;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
@@ -802,9 +807,20 @@ button {
   color: var(--color-text);
 }
 
-.share-input:focus {
+.share-select:focus {
   outline: none;
   border-color: var(--color-primary);
+}
+
+.share-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading-text,
+.no-users-text {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
 
 .btn-share {
@@ -816,13 +832,54 @@ button {
   color: white;
 }
 
-.btn-share:hover {
+.btn-share:hover:not(:disabled) {
   background: var(--color-primary-hover);
+}
+
+.btn-share:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.members-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-name {
+  font-size: 0.875rem;
+}
+
+.btn-remove-member {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius);
+  color: var(--color-danger);
+}
+
+.btn-remove-member:hover {
+  background: var(--color-danger);
+  color: white;
 }
 
 .form-success {
   padding: 0.75rem;
-  margin-bottom: 1rem;
+  margin-top: 0.75rem;
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid #22c55e;
   border-radius: var(--radius);

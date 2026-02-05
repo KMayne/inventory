@@ -1,1 +1,1 @@
-export { inventoryApi, type InventoryInfo } from "./inventories";
+export { inventoryApi, type InventoryInfo, type UserInfo } from "./inventories";

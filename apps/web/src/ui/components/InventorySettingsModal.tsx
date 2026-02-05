@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../auth";
-import { inventoryApi } from "../../api";
+import { inventoryApi, type UserInfo } from "../../api";
 
 interface InventorySettingsModalProps {
   onClose: () => void;
@@ -9,30 +9,68 @@ interface InventorySettingsModalProps {
 export function InventorySettingsModal({ onClose }: InventorySettingsModalProps) {
   const { inventories, currentInventoryId, removeInventory } = useAuth();
 
-  const [memberUserId, setMemberUserId] = useState("");
+  const [availableUsers, setAvailableUsers] = useState<UserInfo[]>([]);
+  const [members, setMembers] = useState<UserInfo[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const currentInventory = inventories.find((i) => i.id === currentInventoryId);
   const isOwner = currentInventory?.isOwner ?? false;
   const name = currentInventory?.name ?? "Inventory";
 
+  const loadData = useCallback(async () => {
+    if (!isOwner || !currentInventoryId) return;
+
+    setLoading(true);
+    try {
+      const [membersRes, usersRes] = await Promise.all([
+        inventoryApi.getMembers(currentInventoryId),
+        inventoryApi.getPossibleMembers(currentInventoryId),
+      ]);
+      setMembers(membersRes.members);
+      setAvailableUsers(usersRes.users);
+    } catch {
+      setError("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, [isOwner, currentInventoryId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleAddMember = async () => {
-    if (!currentInventoryId || !memberUserId.trim()) {
-      setError("User ID is required");
+    if (!currentInventoryId || !selectedUserId) {
+      setError("Please select a user");
       return;
     }
 
     try {
-      await inventoryApi.addMember(currentInventoryId, memberUserId.trim());
-      setMemberUserId("");
+      await inventoryApi.addMember(currentInventoryId, selectedUserId);
+      setSelectedUserId("");
       setError(null);
-      setSuccess("Member added successfully");
+      setSuccess("Member added");
       setTimeout(() => setSuccess(null), 3000);
+      await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add member");
       setSuccess(null);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!currentInventoryId) return;
+
+    try {
+      await inventoryApi.removeMember(currentInventoryId, userId);
+      setError(null);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove member");
     }
   };
 
@@ -75,29 +113,54 @@ export function InventorySettingsModal({ onClose }: InventorySettingsModalProps)
 
           {isOwner && (
             <div className="settings-section">
-              <h4>Share with others</h4>
-              <p className="settings-help">
-                Enter a user ID to give them access to this inventory.
-              </p>
+              <h4>Members</h4>
+              {members.length > 0 && (
+                <ul className="members-list">
+                  {members.map((member) => (
+                    <li key={member.id} className="member-item">
+                      <span className="member-name">{member.name}</span>
+                      <button
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="btn-remove-member"
+                        disabled={loading}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-              {error && <div className="form-error">{error}</div>}
-              {success && <div className="form-success">{success}</div>}
-
-              <div className="share-form">
-                <input
-                  type="text"
-                  value={memberUserId}
+              <div className="add-member-form">
+                <select
+                  value={selectedUserId}
                   onChange={(e) => {
-                    setMemberUserId(e.target.value);
+                    setSelectedUserId(e.target.value);
                     setError(null);
                   }}
-                  placeholder="User ID"
-                  className="share-input"
-                />
-                <button onClick={handleAddMember} className="btn-share">
+                  className="share-select"
+                  disabled={loading || availableUsers.length === 0}
+                >
+                  <option value="">
+                    {loading ? "Loading..." : availableUsers.length === 0 ? "No users to add" : "Add a member..."}
+                  </option>
+                  {availableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddMember}
+                  className="btn-share"
+                  disabled={loading || !selectedUserId}
+                >
                   Add
                 </button>
               </div>
+
+              {error && <div className="form-error">{error}</div>}
+              {success && <div className="form-success">{success}</div>}
             </div>
           )}
 

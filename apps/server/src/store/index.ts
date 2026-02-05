@@ -1,5 +1,6 @@
 export {
   createUser,
+  getAllUsers,
   getUserById,
   getUserByCredentialId,
   addCredentialToUser,
@@ -23,4 +24,6 @@ export {
   addMemberToInventory,
   removeMemberFromInventory,
   deleteInventoryAccess,
+  getInventoryMembersWithNames,
+  getAvailableUsersForInventory,
 } from "./access.ts";

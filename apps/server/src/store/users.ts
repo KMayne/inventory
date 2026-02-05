@@ -16,6 +16,14 @@ export async function createUser(name: string): Promise<User> {
   };
 }
 
+export async function getAllUsers(): Promise<Array<{ id: string; name: string }>> {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  return users;
+}
+
 export async function getUserById(id: string): Promise<User | undefined> {
   const user = await prisma.user.findUnique({
     where: { id },

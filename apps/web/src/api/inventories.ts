@@ -22,6 +22,11 @@ export interface InventoryInfo {
   isOwner: boolean;
 }
 
+export interface UserInfo {
+  id: string;
+  name: string;
+}
+
 export const inventoryApi = {
   list(): Promise<{ inventories: InventoryInfo[] }> {
     return api("/api/inventories");
@@ -49,5 +54,13 @@ export const inventoryApi = {
     return api(`/api/inventories/${inventoryId}/members/${userId}`, {
       method: "DELETE",
     });
+  },
+
+  getMembers(inventoryId: string): Promise<{ members: UserInfo[] }> {
+    return api(`/api/inventories/${inventoryId}/members`);
+  },
+
+  getPossibleMembers(inventoryId: string): Promise<{ users: UserInfo[] }> {
+    return api(`/api/inventories/${inventoryId}/possible-members`);
   },
 };

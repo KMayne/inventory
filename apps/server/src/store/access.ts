@@ -138,3 +138,53 @@ export async function deleteInventoryAccess(
     return false;
   }
 }
+
+export async function getInventoryMembersWithNames(
+  inventoryId: string
+): Promise<{ members: Array<{ id: string; name: string }>; ownerId: string } | null> {
+  const inventory = await prisma.inventory.findUnique({
+    where: { id: inventoryId },
+    include: {
+      members: {
+        include: { user: { select: { id: true, name: true } } },
+      },
+      owner: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!inventory) return null;
+
+  return {
+    ownerId: inventory.ownerId,
+    members: inventory.members.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+    })),
+  };
+}
+
+export async function getAvailableUsersForInventory(
+  inventoryId: string,
+  excludeUserId: string
+): Promise<Array<{ id: string; name: string }>> {
+  const inventory = await prisma.inventory.findUnique({
+    where: { id: inventoryId },
+    include: { members: true },
+  });
+
+  if (!inventory) return [];
+
+  const excludedIds = [
+    inventory.ownerId,
+    ...inventory.members.map((m) => m.userId),
+    excludeUserId,
+  ];
+
+  const users = await prisma.user.findMany({
+    where: { id: { notIn: excludedIds } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  return users;
+}
