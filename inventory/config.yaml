@@ -11,7 +11,7 @@ arch:
   - amd64
 ports:
   3000/tcp: 3000
-webui: http://[HOST]:[PORT:3000/tcp]
+webui: http://[HOST]:[PORT:3000]
 options:
   rp_id: ""
   origin: ""
