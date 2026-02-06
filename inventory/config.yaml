@@ -2,7 +2,7 @@ name: "Inventory"
 description: "An app for keeping track of items at home"
 version: "1.0.0"
 slug: "inventory"
-image: ghcr.io/kmayne/inventory
+image: ghcr.io/kmayne/inventory:v0.0.0
 init: false
 startup: application
 boot: auto
