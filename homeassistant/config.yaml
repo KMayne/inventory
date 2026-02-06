@@ -1,0 +1,19 @@
+name: "Inventory"
+description: "An app for keeping track of items at home"
+version: "1.0.0"
+slug: "inventory"
+init: false
+startup: application
+boot: auto
+arch:
+  - aarch64
+  - amd64
+ports:
+  3000/tcp: 3000
+webui: http://[HOST]:[PORT:3000/tcp]
+options:
+  rp_id: ""
+  origin: ""
+schema:
+  rp_id: str
+  origin: str

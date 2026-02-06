@@ -14,7 +14,11 @@
       "Bash(pnpm build:*)",
       "Bash(pnpm --filter @inventory/shared typecheck:*)",
       "Bash(pnpm --filter web typecheck:*)",
-      "Bash(pnpm run build:*)"
+      "Bash(pnpm run build:*)",
+      "WebFetch(domain:developers.home-assistant.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(find:*)",
+      "Bash(git config:*)"
     ]
   }
 }

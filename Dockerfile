@@ -32,9 +32,13 @@ RUN pnpm --filter @inventory/web run build
 # Expose port
 EXPOSE 3000
 
+# Copy startup script
+COPY run.sh ./run.sh
+RUN chmod +x ./run.sh
+
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
 
 # Start server
-CMD ["pnpm", "start"]
+CMD ["./run.sh"]
