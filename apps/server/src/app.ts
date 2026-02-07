@@ -47,4 +47,10 @@ app.use("/api/inventories", inventories);
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
-app.use("/", express.static("../web/dist"));
+const staticDir = "../web/dist";
+app.use("/", express.static(staticDir));
+
+// SPA fallback: serve index.html for non-API routes
+app.get("*", (_req, res) => {
+  res.sendFile("index.html", { root: staticDir });
+});
