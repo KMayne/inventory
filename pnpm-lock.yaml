@@ -29,7 +29,7 @@ importers:
       '@automerge/automerge-repo-storage-nodefs':
         specifier: ^2.0.13
         version: 2.5.1
-      '@inventory/shared':
+      '@homie/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@prisma/adapter-better-sqlite3':
@@ -102,7 +102,7 @@ importers:
       '@automerge/react':
         specifier: ^2.5.1
         version: 2.5.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@inventory/shared':
+      '@homie/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       react:

@@ -1,4 +1,4 @@
-# Inventory
+# Homie
 
 An app for tracking where your things are at home.
 

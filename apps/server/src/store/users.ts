@@ -1,4 +1,4 @@
-import type { InventoryDoc, Session, User } from "@inventory/shared";
+import type { InventoryDoc, Session, User } from "@homie/shared";
 import { config } from "../config.ts";
 import { getRepo } from "../repo.ts";
 import { prisma } from "./prisma.ts";

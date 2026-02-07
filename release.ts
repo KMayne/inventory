@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 
-const IMAGE = "ghcr.io/kmayne/inventory";
+const IMAGE = "ghcr.io/kmayne/homie";
 const CONFIG_YAML = "inventory/config.yaml";
 const PACKAGE_JSON = "package.json";
 

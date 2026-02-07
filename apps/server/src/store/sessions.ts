@@ -1,4 +1,4 @@
-import type { Session } from "@inventory/shared";
+import type { Session } from "@homie/shared";
 import { config } from "../config.ts";
 import { prisma } from "./prisma.ts";
 

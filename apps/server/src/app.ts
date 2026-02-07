@@ -1,4 +1,4 @@
-import type { Session, User } from "@inventory/shared";
+import type { Session, User } from "@homie/shared";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Application } from "express";

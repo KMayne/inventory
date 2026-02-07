@@ -21,13 +21,13 @@ COPY apps/web ./apps/web
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma client
-RUN pnpm --filter @inventory/server exec prisma generate
+RUN pnpm --filter @homie/server exec prisma generate
 
 # Set working directory to server
 WORKDIR /app/apps/server
 
 # Build frontend
-RUN pnpm --filter @inventory/web run build
+RUN pnpm --filter @homie/web run build
 
 # Expose port
 EXPOSE 3000

@@ -4,7 +4,7 @@ import type {
   InventoryDoc,
   InventoryItem,
   NewInventoryItem,
-} from "@inventory/shared";
+} from "@homie/shared";
 import { useInventoryId } from "./context";
 import { uuid } from "../utils/uuid";
 

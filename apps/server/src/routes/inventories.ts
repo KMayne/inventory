@@ -1,4 +1,4 @@
-import type { InventoryDoc } from "@inventory/shared";
+import type { InventoryDoc } from "@homie/shared";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { getRepo } from "../repo.ts";
 import {

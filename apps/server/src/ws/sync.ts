@@ -4,7 +4,7 @@ import { WebSocketServer } from "ws";
 import { parse as parseCookie } from "cookie";
 import { config } from "../config.ts";
 import { getSession, getUserById } from "../store/index.ts";
-import type { Session, User } from "@inventory/shared";
+import type { Session, User } from "@homie/shared";
 
 export interface AuthenticatedRequest extends IncomingMessage {
   session: Session;

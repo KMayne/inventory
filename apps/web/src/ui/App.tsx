@@ -101,7 +101,7 @@ export function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-left">
-          <h1>Home Inventory</h1>
+          <h1>Homie</h1>
         </div>
         <div className="header-right">
           <button onClick={() => setShowProfileModal(true)} className="btn-user-name">

@@ -1,4 +1,4 @@
-import { importItemsSchema } from "@inventory/shared";
+import { importItemsSchema } from "@homie/shared";
 import { useState } from "react";
 import { z } from "zod/v4";
 import type { NewItem } from "../../domain";

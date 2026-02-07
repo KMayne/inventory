@@ -5,4 +5,4 @@ export type {
   InventoryItem as Item,
   NewInventoryItem as NewItem,
   NewItemAttribute,
-} from "@inventory/shared";
+} from "@homie/shared";

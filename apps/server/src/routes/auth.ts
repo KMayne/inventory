@@ -1,4 +1,4 @@
-import type { Session } from "@inventory/shared";
+import type { Session } from "@homie/shared";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { config } from "../config.ts";
 import { hashPassword, verifyPassword } from "../password.ts";

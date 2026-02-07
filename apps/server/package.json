@@ -1,5 +1,5 @@
 {
-  "name": "@inventory/server",
+  "name": "@homie/server",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,7 +13,7 @@
     "@automerge/automerge-repo": "^2.0.13",
     "@automerge/automerge-repo-network-websocket": "^2.0.13",
     "@automerge/automerge-repo-storage-nodefs": "^2.0.13",
-    "@inventory/shared": "workspace:*",
+    "@homie/shared": "workspace:*",
     "@prisma/adapter-better-sqlite3": "^7.2.1",
     "@prisma/client": "^7.2.1",
     "cookie": "^1.0.3",

@@ -1,4 +1,4 @@
-import type { InventoryAccess } from "@inventory/shared";
+import type { InventoryAccess } from "@homie/shared";
 import { prisma } from "./prisma.ts";
 
 export async function createInventoryAccess(

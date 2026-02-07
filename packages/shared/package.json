@@ -1,5 +1,5 @@
 {
-  "name": "@inventory/shared",
+  "name": "@homie/shared",
   "version": "0.0.0",
   "type": "module",
   "main": "./src/index.ts",
