@@ -2,11 +2,8 @@ export {
   createUser,
   getAllUsers,
   getUserById,
+  getUserByUsername,
   updateUser,
-  getUserByCredentialId,
-  addCredentialToUser,
-  getCredentialById,
-  updateCredentialCounter,
 } from "./users.ts";
 
 export {

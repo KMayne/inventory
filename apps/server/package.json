@@ -16,8 +16,6 @@
     "@inventory/shared": "workspace:*",
     "@prisma/adapter-better-sqlite3": "^7.2.1",
     "@prisma/client": "^7.2.1",
-    "@simplewebauthn/server": "^11.0.0",
-    "@simplewebauthn/types": "^11.0.0",
     "cookie": "^1.0.3",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",

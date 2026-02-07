@@ -7,10 +7,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  startRegistration,
-  startAuthentication,
-} from "@simplewebauthn/browser";
-import {
   authApi,
   type UserInfo,
   type InventoryInfo,
@@ -34,8 +30,8 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  register: (name: string) => Promise<void>;
-  login: () => Promise<void>;
+  register: (username: string, name: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<UserInfo>) => void;
   setCurrentInventoryId: (id: string) => void;
@@ -106,15 +102,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const register = useCallback(async (name: string) => {
-    // Get registration options from server
-    const { options, tempId } = await authApi.registerStart(name);
-
-    // Start WebAuthn registration
-    const credential = await startRegistration({ optionsJSON: options });
-
-    // Finish registration on server
-    const result = await authApi.registerFinish(tempId, name, credential);
+  const register = useCallback(async (username: string, name: string, password: string) => {
+    const result = await authApi.register(username, name, password);
 
     const inventories = [{ id: result.inventoryId, name: "Inventory", isOwner: true }];
     navigateToInventory(result.inventoryId, false);
@@ -126,15 +115,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
-  const login = useCallback(async () => {
-    // Get authentication options from server
-    const { options, tempId } = await authApi.loginStart();
-
-    // Start WebAuthn authentication
-    const credential = await startAuthentication({ optionsJSON: options });
-
-    // Finish login on server
-    const result = await authApi.loginFinish(tempId, credential);
+  const login = useCallback(async (username: string, password: string) => {
+    const result = await authApi.login(username, password);
 
     const currentInventoryId = result.inventories[0]?.id ?? null;
     if (currentInventoryId) {

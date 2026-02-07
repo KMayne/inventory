@@ -1,107 +1,55 @@
 import type { InventoryDoc, Session } from "@inventory/shared";
-import {
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
-  verifyAuthenticationResponse,
-  verifyRegistrationResponse,
-} from "@simplewebauthn/server";
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/types";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { config } from "../config.ts";
+import { hashPassword, verifyPassword } from "../password.ts";
 import { getRepo } from "../repo.ts";
 import {
-  addCredentialToUser,
   createInventoryAccess,
   createSession,
   createUser,
   deleteSession,
-  getCredentialById,
   getInventoriesForUser,
-  getUserByCredentialId,
   getUserById,
+  getUserByUsername,
   refreshSession,
-  updateCredentialCounter,
   updateUser,
 } from "../store/index.ts";
 
 const auth: IRouter = Router();
 
-// Store challenges temporarily (in production, use a proper store)
-const challenges = new Map<string, string>(); // tempId -> challenge
+// POST /auth/register
+auth.post("/register", async (req: Request, res: Response) => {
+  const { username, name, password } = req.body as {
+    username: string;
+    name: string;
+    password: string;
+  };
 
-// POST /auth/register/start
-auth.post("/register/start", async (req: Request, res: Response) => {
-  const { name } = req.body as { name: string };
+  if (!username || typeof username !== "string" || username.trim().length === 0) {
+    res.status(400).json({ error: "Username is required" });
+    return;
+  }
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     res.status(400).json({ error: "Name is required" });
     return;
   }
 
-  const tempId = crypto.randomUUID();
-
-  const options = await generateRegistrationOptions({
-    rpName: config.rpName,
-    rpID: config.rpID,
-    userName: name.trim(),
-    attestationType: "none",
-    authenticatorSelection: {
-      residentKey: "preferred",
-      userVerification: "preferred",
-    },
-  });
-
-  challenges.set(tempId, options.challenge);
-
-  // Clean up old challenges after 5 minutes
-  setTimeout(() => challenges.delete(tempId), 5 * 60 * 1000);
-
-  res.json({ options, tempId });
-});
-
-// POST /auth/register/finish
-auth.post("/register/finish", async (req: Request, res: Response) => {
-  const { tempId, name, response } = req.body as {
-    tempId: string;
-    name: string;
-    response: RegistrationResponseJSON;
-  };
-
-  const challenge = challenges.get(tempId);
-  if (!challenge) {
-    res.status(400).json({ error: "Challenge expired or invalid" });
+  if (!password || typeof password !== "string" || password.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters" });
     return;
   }
-  challenges.delete(tempId);
 
   try {
-    const verification = await verifyRegistrationResponse({
-      response,
-      expectedChallenge: challenge,
-      expectedOrigin: config.origin,
-      expectedRPID: config.rpID,
-    });
-
-    if (!verification.verified || !verification.registrationInfo) {
-      res.status(400).json({ error: "Registration verification failed" });
+    // Check if username is already taken
+    const existing = await getUserByUsername(username.trim());
+    if (existing) {
+      res.status(409).json({ error: "Username already taken" });
       return;
     }
 
-    const { credential } = verification.registrationInfo;
-
-    // Create user
-    const user = await createUser(name.trim());
-
-    // Add credential
-    await addCredentialToUser(user.id, {
-      id: credential.id,
-      publicKey: credential.publicKey,
-      counter: credential.counter,
-      transports: response.response.transports,
-    });
+    const passwordHash = await hashPassword(password);
+    const user = await createUser(username.trim(), passwordHash, name.trim());
 
     // Create default inventory
     const repo = getRepo();
@@ -125,73 +73,30 @@ auth.post("/register/finish", async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/login/start
-auth.post("/login/start", async (req: Request, res: Response) => {
-  const tempId = crypto.randomUUID();
-
-  const options = await generateAuthenticationOptions({
-    rpID: config.rpID,
-    userVerification: "preferred",
-  });
-
-  challenges.set(tempId, options.challenge);
-  setTimeout(() => challenges.delete(tempId), 5 * 60 * 1000);
-
-  res.json({ options, tempId });
-});
-
-// POST /auth/login/finish
-auth.post("/login/finish", async (req: Request, res: Response) => {
-  const { tempId, response } = req.body as {
-    tempId: string;
-    response: AuthenticationResponseJSON;
+// POST /auth/login
+auth.post("/login", async (req: Request, res: Response) => {
+  const { username, password } = req.body as {
+    username: string;
+    password: string;
   };
 
-  const challenge = challenges.get(tempId);
-  if (!challenge) {
-    res.status(400).json({ error: "Challenge expired or invalid" });
+  if (!username || !password) {
+    res.status(400).json({ error: "Username and password are required" });
     return;
   }
-  challenges.delete(tempId);
 
   try {
-    // Find user by credential ID
-    const user = await getUserByCredentialId(response.id);
+    const user = await getUserByUsername(username.trim());
     if (!user) {
-      res.status(401).json({ error: "Credential not found" });
+      res.status(401).json({ error: "Invalid username or password" });
       return;
     }
 
-    const credential = await getCredentialById(user.id, response.id);
-    if (!credential) {
-      res.status(401).json({ error: "Credential not found" });
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid username or password" });
       return;
     }
-
-    const verification = await verifyAuthenticationResponse({
-      response,
-      expectedChallenge: challenge,
-      expectedOrigin: config.origin,
-      expectedRPID: config.rpID,
-      credential: {
-        id: credential.id,
-        publicKey: credential.publicKey,
-        counter: credential.counter,
-        transports: credential.transports,
-      },
-    });
-
-    if (!verification.verified) {
-      res.status(401).json({ error: "Authentication failed" });
-      return;
-    }
-
-    // Update counter
-    await updateCredentialCounter(
-      user.id,
-      credential.id,
-      verification.authenticationInfo.newCounter,
-    );
 
     // Create session
     const session = await createSession(user.id);

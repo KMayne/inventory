@@ -1,8 +1,3 @@
-import type {
-  PublicKeyCredentialCreationOptionsJSON,
-  PublicKeyCredentialRequestOptionsJSON,
-} from "@simplewebauthn/types";
-
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 interface ApiOptions {
@@ -42,22 +37,12 @@ export interface MeResponse {
   inventories?: InventoryInfo[];
 }
 
-export interface RegisterStartResponse {
-  options: PublicKeyCredentialCreationOptionsJSON;
-  tempId: string;
-}
-
-export interface RegisterFinishResponse {
+export interface RegisterResponse {
   user: UserInfo;
   inventoryId: string;
 }
 
-export interface LoginStartResponse {
-  options: PublicKeyCredentialRequestOptionsJSON;
-  tempId: string;
-}
-
-export interface LoginFinishResponse {
+export interface LoginResponse {
   user: UserInfo;
   inventories: InventoryInfo[];
 }
@@ -67,32 +52,17 @@ export const authApi = {
     return api("/api/auth/me");
   },
 
-  registerStart(name: string): Promise<RegisterStartResponse> {
-    return api("/api/auth/register/start", {
+  register(username: string, name: string, password: string): Promise<RegisterResponse> {
+    return api("/api/auth/register", {
       method: "POST",
-      body: { name },
+      body: { username, name, password },
     });
   },
 
-  registerFinish(
-    tempId: string,
-    name: string,
-    response: unknown
-  ): Promise<RegisterFinishResponse> {
-    return api("/api/auth/register/finish", {
+  login(username: string, password: string): Promise<LoginResponse> {
+    return api("/api/auth/login", {
       method: "POST",
-      body: { tempId, name, response },
-    });
-  },
-
-  loginStart(): Promise<LoginStartResponse> {
-    return api("/api/auth/login/start", { method: "POST" });
-  },
-
-  loginFinish(tempId: string, response: unknown): Promise<LoginFinishResponse> {
-    return api("/api/auth/login/finish", {
-      method: "POST",
-      body: { tempId, response },
+      body: { username, password },
     });
   },
 

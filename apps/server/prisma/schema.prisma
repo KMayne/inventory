@@ -7,24 +7,14 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  name        String
-  createdAt   DateTime     @default(now())
-  credentials Credential[]
-  sessions    Session[]
+  id           String       @id @default(uuid())
+  username     String       @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime     @default(now())
+  sessions     Session[]
   ownedInventories   Inventory[]       @relation("InventoryOwner")
   memberInventories  InventoryMember[]
-}
-
-model Credential {
-  id         String  @id
-  publicKey  Bytes
-  counter    Int
-  transports String? // JSON array stored as string
-  userId     String
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 model Session {

@@ -15,8 +15,6 @@
     "@automerge/automerge-repo-storage-indexeddb": "^2.0.13",
     "@automerge/react": "^2.5.1",
     "@inventory/shared": "workspace:*",
-    "@simplewebauthn/browser": "^11.0.0",
-    "@simplewebauthn/types": "^11.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.3.6"

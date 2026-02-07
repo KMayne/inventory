@@ -1,5 +1,4 @@
 export type {
-  StoredCredential,
   User,
   Session,
 } from "./user";

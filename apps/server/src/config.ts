@@ -17,9 +17,6 @@ if (existsSync(optionsPath)) {
 export const config = {
   port: parseInt(process.env.PORT ?? "3000", 10),
 
-  // WebAuthn
-  rpName: "Inventory App",
-  rpID: process.env.RP_ID ?? haOptions.rp_id ?? "localhost",
   origin: process.env.ORIGIN ?? haOptions.origin ?? "http://localhost:5173",
 
   // Sessions
