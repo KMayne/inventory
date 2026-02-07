@@ -1,9 +1,9 @@
 import path from "node:path";
 import { defineConfig } from "prisma/config";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { config } from "./src/config";
 
-const dataDir = process.env.DATA_DIR ?? "./data";
-const dbUrl = `file:${dataDir}/inventory.db`;
+const dbUrl = `file:${config.dataDir}/inventory.db`;
 
 export default defineConfig({
   earlyAccess: true,
