@@ -3,7 +3,7 @@ import { execSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 
 const IMAGE = "ghcr.io/kmayne/homie";
-const CONFIG_YAML = "inventory/config.yaml";
+const CONFIG_YAML = "homie/config.yaml";
 const PACKAGE_JSON = "package.json";
 
 function run(cmd: string) {
