@@ -78,11 +78,12 @@ async function main() {
     ` --push .`
   );
 
+  run("git push && git push --tags");
+
   console.log(`\nDone! Released v${newVersion}`);
   console.log(`  Config & package.json updated`);
   console.log(`  Git tag: v${newVersion}`);
   console.log(`  Docker: ${IMAGE}:${newVersion} + :latest`);
-  console.log(`\nDon't forget to push: git push && git push --tags`);
 }
 
 main();
