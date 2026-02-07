@@ -13,8 +13,7 @@ ports:
   3000/tcp: 3000
 webui: http://[HOST]:[PORT:3000]
 options:
-  rp_id: ""
-  origin: ""
+  origins: []
 schema:
-  rp_id: str
-  origin: str
+  origins:
+    - url

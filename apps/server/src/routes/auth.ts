@@ -61,7 +61,7 @@ auth.post("/register", async (req: Request, res: Response) => {
 
     // Create session
     const session = await createSession(user.id);
-    setSessionCookie(res, session);
+    setSessionCookie(req, res, session);
 
     res.json({
       user: { id: user.id, name: user.name },
@@ -100,7 +100,7 @@ auth.post("/login", async (req: Request, res: Response) => {
 
     // Create session
     const session = await createSession(user.id);
-    setSessionCookie(res, session);
+    setSessionCookie(req, res, session);
 
     const userInventories = await getInventoriesForUser(user.id);
 
@@ -140,7 +140,7 @@ auth.get("/me", async (req: Request, res: Response) => {
     return;
   }
 
-  setSessionCookie(res, session);
+  setSessionCookie(req, res, session);
 
   const userInventories = await getInventoriesForUser(user.id);
 
@@ -191,7 +191,7 @@ auth.patch("/me", async (req: Request, res: Response) => {
     return;
   }
 
-  setSessionCookie(res, session);
+  setSessionCookie(req, res, session);
   res.json({ user });
 });
 
@@ -206,10 +206,10 @@ auth.post("/logout", async (req: Request, res: Response) => {
 });
 
 
-export function setSessionCookie(res: Response, session: Session) {
+export function setSessionCookie(req: Request, res: Response, session: Session) {
   res.cookie(config.sessionCookieName, session.id, {
     httpOnly: true,
-    secure: config.origin.startsWith("https"),
+    secure: req.protocol === "https",
     sameSite: "lax",
     maxAge: config.sessionMaxAge,
     path: "/",

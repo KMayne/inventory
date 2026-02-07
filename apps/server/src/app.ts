@@ -25,7 +25,7 @@ app.use(cookieParser());
 // CORS for frontend
 app.use(
   cors({
-    origin: config.origin,
+    origin: config.origins,
     credentials: true,
   }),
 );

@@ -4,7 +4,7 @@ import { join } from "path";
 const dataDir = process.env.DATA_DIR ?? "./data";
 
 // Read HA add-on options.json if present
-let haOptions: { rp_id?: string; origin?: string } = {};
+let haOptions: { origins?: string[] } = {};
 const optionsPath = join(dataDir, "options.json");
 if (existsSync(optionsPath)) {
   try {
@@ -17,7 +17,9 @@ if (existsSync(optionsPath)) {
 export const config = {
   port: parseInt(process.env.PORT ?? "3000", 10),
 
-  origin: process.env.ORIGIN ?? haOptions.origin ?? "http://localhost:5173",
+  origins: haOptions.origins?.length
+    ? haOptions.origins
+    : [process.env.ORIGIN ?? "http://localhost:5173"],
 
   // Sessions
   sessionCookieName: "session",

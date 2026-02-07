@@ -45,7 +45,7 @@ inventories.use(async (req, res, next) => {
   req.user = user;
 
   // Update session cookie with new expiry
-  setSessionCookie(res, session);
+  setSessionCookie(req, res, session);
 
   next();
 });
